@@ -1,0 +1,237 @@
+<html lang="ja">
+	<head>
+		<title>Polaris</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap" rel="stylesheet" />
+	</head>
+	<body>
+		<div class="m-3" style="display: flex; justify-content: start; align-items: center">
+			<img src="./src/polaris-logo.png" height="70" />
+			<span style="margin-left: 1rem; font-size: 1.25rem; font-family: 'Noto Sans JP', 'sans-serif'">フォーマットチェックツール</span>
+		</div>
+		<div style="margin: 3rem">
+			<div style="font-weight: bolder; margin-bottom: 5px">polaris-proto定義ファイルをフォルダーごとアップロードしてください</div>
+			<div>plaris-stageで使用している場合は「data」フォルダーです</div>
+			<div style="margin: 2rem">
+				<input type="file" id="proto" accept="application/json" directory webkitdirectory mozdirectory />
+			</div>
+		</div>
+		<div style="display: flex">
+			<div style="display: block; width: 20%; padding: 1rem">
+				<div style="margin-bottom: 2rem"><strong>メタデータ解析</strong></div>
+				<div style="margin: 2rem">
+					<div style="display: flex">
+						<div style="flex: 1">コード</div>
+						<div id="projectCode"></div>
+					</div>
+					<div style="display: flex">
+						<div style="flex: 1">発行者</div>
+						<div id="aud"></div>
+					</div>
+					<div style="display: flex">
+						<div style="flex: 1">列数</div>
+						<div id="cols"></div>
+					</div>
+				</div>
+			</div>
+			<div style="width: 80%; padding: 1rem">
+				<div>
+					<div style="margin-bottom: 2rem"><strong>テスト結果</strong></div>
+				</div>
+				<div class="test">
+					<div class="test-job">PL01: ファイル名は「meta.json」でなければならない</div>
+					<div class="test-result" id="result-pl01"></div>
+				</div>
+				<div class="test">
+					<div class="test-job">PL02: プロジェクトコードが文字列であるべきである</div>
+					<div class="test-result" id="result-pl02"></div>
+				</div>
+			</div>
+		</div>
+		<div style="display: flex">
+			<div style="display: block; width: 20%; padding: 1rem">
+				<div style="margin-bottom: 2rem"><strong>レイヤーデータ解析</strong></div>
+				<div style="margin: 2rem">
+					<div style="display: flex">
+						<div style="flex: 1">正常レイヤー数</div>
+						<div>
+							<div id="numberOflayer"></div>
+							<div id="nameOflayer"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div style="width: 80%; padding: 1rem">
+				<div>
+					<div style="margin-bottom: 2rem"><strong>テスト結果</strong></div>
+				</div>
+				<div class="test">
+					<div class="test-job">PL03: すべてのレイヤーデータの発行者がメタデータの発行者と一致しなければならない</div>
+					<div class="test-result" id="result-pl03"></div>
+				</div>
+				<div class="test">
+					<div class="test-job">PL04: 「layer」フォルダーにはレイヤーデータ以外のファイルが含まれていてはいけない</div>
+					<div class="test-result" id="result-pl04"></div>
+				</div>
+				<div class="test">
+					<div class="test-job">PL05: すべてのレイヤーデータのプロジェクトコードはメタデータと一致しなければならない</div>
+					<div class="test-result" id="result-pl05"></div>
+				</div>
+				<div class="test">
+					<div class="test-job">PL06: すべてのレイヤーデータの列数はメタデータと一致しなければならない</div>
+					<div class="test-result" id="result-pl06"></div>
+				</div>
+				<div class="test">
+					<div class="test-job">PL07: すべてのレイヤーデータの「layerIndex」は0から始まり、連続でなければいけない</div>
+					<div class="test-result" id="result-pl07"></div>
+				</div>
+			</div>
+		</div>
+	</body>
+	<style>
+		body {
+			font-family: 'Noto Sans JP', 'sans-serif';
+		}
+		.test {
+			display: flex;
+			justify-content: start;
+			align-items: center;
+			padding: 1rem;
+			border: 1px solid #ccc;
+			border-radius: 5px;
+			background-color: #f8f9fa;
+			margin: 10px;
+		}
+		.test-job {
+			flex: 1;
+		}
+		.test-result {
+			flex: 1;
+			text-align: center;
+		}
+		.test-success {
+			color: #28a745;
+		}
+		.test-warning {
+			color: #ffc107;
+		}
+		.test-error {
+			color: #dc3545;
+		}
+	</style>
+	<script>
+		document.getElementById('proto').addEventListener('change', (e) => {
+			// メタデータの読み込み
+			const metadata = e.target.files[0];
+			const reader = new FileReader();
+			reader.readAsText(e.target.files[0]);
+			reader.onload = (e) => {
+				let metadata = JSON.parse(e.target.result);
+				let projectCode = metadata.projectCode; // Declare the projectCode variable
+				// PL02
+				if (typeof projectCode !== 'string') {
+					document.getElementById('result-pl02').innerHTML = 'NG: ' + typeof projectCode; // Use the projectCode variable
+					document.getElementById('result-pl02').classList.add('test-error');
+				} else if (projectCode.includes(' ')) {
+					document.getElementById('result-pl02').innerHTML = 'Warning'; // Use the projectCode variable
+					document.getElementById('result-pl02').classList.add('test-warning');
+				} else {
+					document.getElementById('result-pl02').innerHTML = 'OK'; // Use the projectCode variable
+					document.getElementById('result-pl02').classList.add('test-success');
+				}
+				// metaデータ処理
+				document.getElementById('projectCode').innerHTML = metadata.projectCode;
+				document.getElementById('aud').innerHTML = metadata.aud;
+				document.getElementById('cols').innerHTML = metadata.col.length;
+			};
+			const fileName = metadata.name;
+			// PL01
+			if (fileName !== 'meta.json') {
+				document.getElementById('result-pl01').innerHTML = 'NG';
+				document.getElementById('result-pl01').classList.add('test-error');
+			} else {
+				document.getElementById('result-pl01').innerHTML = 'OK';
+				document.getElementById('result-pl01').classList.add('test-success');
+			}
+
+			let layerMotherData = new Array(e.target.files.length - 1).fill(null);
+			let numberOflayer = 0;
+			let nameOfLayer = [];
+			// レイヤーデータの読み込み
+			for (var i = 1; i < e.target.files.length; i++) {
+				const layerData = e.target.files[i];
+				const filename = layerData.name;
+				const fileExtension = layerData.name.split('.').pop(); // Get the file extension
+				let judgeFlag = true;
+				if (fileExtension !== 'json') {
+					document.getElementById('result-pl04').innerHTML = 'NG: ' + fileExtension + 'ファイル' + filename;
+					document.getElementById('result-pl04').classList.add('test-error');
+					judgeFlag = false;
+				}
+				const reader = new FileReader();
+				reader.readAsText(layerData);
+				reader.onload = (e) => {
+					let layerData = JSON.parse(e.target.result);
+					// PL03
+					if (document.getElementById('aud').innerHTML !== layerData.aud) {
+						document.getElementById('result-pl03').innerHTML = 'NG: Expected ' + document.getElementById('aud').innerHTML + ' Actual ' + layerData.aud + ' in ' + layerData.layerName;
+						document.getElementById('result-pl03').classList.add('test-error');
+						judgeFlag = false;
+					}
+					// PL05
+					if (document.getElementById('projectCode').innerHTML !== layerData.projectCode) {
+						document.getElementById('result-pl05').innerHTML =
+							'NG: Expected ' + document.getElementById('projectCode').innerHTML + ' Actual ' + layerData.projectCode + ' in ' + layerData.layerName;
+						document.getElementById('result-pl05').classList.add('test-error');
+						judgeFlag = false;
+					}
+					// PL06
+					layerData.body.forEach((element, index) => {
+						if (element.length != document.getElementById('cols').innerHTML) {
+							document.getElementById('result-pl06').innerHTML =
+								'NG: Expected ' + document.getElementById('cols').innerHTML + ' Actual ' + element.length + ' in ' + layerData.layerName + ' at section ' + index;
+							document.getElementById('result-pl06').classList.add('test-error');
+							judgeFlag = false;
+						}
+					});
+					// PL07
+					layerMotherData[layerData.layerIndex] = layerData.layerName;
+					if (judgeFlag) {
+						numberOflayer++;
+						nameOfLayer.push(layerData.layerName + '<br />');
+					}
+					if (layerMotherData.includes(null)) {
+						document.getElementById('result-pl07').innerHTML = 'NG: ' + layerMotherData.indexOf(null);
+						document.getElementById('result-pl07').classList.add('test-error');
+					} else {
+						document.getElementById('result-pl07').innerHTML = 'OK';
+						document.getElementById('result-pl07').classList.remove('test-error');
+						document.getElementById('result-pl07').classList.add('test-success');
+					}
+					document.getElementById('numberOflayer').innerHTML = numberOflayer;
+					document.getElementById('nameOflayer').innerHTML = nameOfLayer.join('');
+				};
+			}
+			// 問題のなかった項目にOKを表示
+			if (document.getElementById('result-pl03').innerHTML === '') {
+				document.getElementById('result-pl03').innerHTML = 'OK';
+				document.getElementById('result-pl03').classList.add('test-success');
+			}
+			if (document.getElementById('result-pl04').innerHTML === '') {
+				document.getElementById('result-pl04').innerHTML = 'OK';
+				document.getElementById('result-pl04').classList.add('test-success');
+			}
+			if (document.getElementById('result-pl05').innerHTML === '') {
+				document.getElementById('result-pl05').innerHTML = 'OK';
+				document.getElementById('result-pl05').classList.add('test-success');
+			}
+			if (document.getElementById('result-pl06').innerHTML === '') {
+				document.getElementById('result-pl06').innerHTML = 'OK';
+				document.getElementById('result-pl06').classList.add('test-success');
+			}
+		});
+	</script>
+</html>
